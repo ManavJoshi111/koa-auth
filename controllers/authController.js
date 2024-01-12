@@ -1,5 +1,6 @@
 const { User } = require("../models");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const login = async (ctx) => {
   try {
@@ -74,7 +75,35 @@ const signup = async (ctx) => {
   }
 };
 
+const getUser = async (ctx) => {
+  try {
+    try {
+      const { token } = ctx.request?.body;
+      const payload = await jwt.verify(token, process.env.JWT_SECRET);
+      const { _id } = payload;
+      const user = await User.findById(_id, { _id: 0, password: 0 });
+      if (!user) {
+        ctx.response.status = 404;
+        ctx.response.body = {
+          error: "User not found!",
+        };
+        return;
+      }
+      ctx.response.status = 200;
+      ctx.response.body = { user };
+    } catch (err) {
+      ctx.response.status = 500;
+      ctx.response.body = err;
+      return;
+    }
+  } catch (err) {
+    ctx.response.status = 500;
+    ctx.response.body = err;
+    return;
+  }
+};
 module.exports = {
   login,
   signup,
+  getUser,
 };
